@@ -219,12 +219,19 @@ CONVERSATION HISTORY:`;
             console.log('📤 SENDING TO OPENAI...\n');
             
             const completion = await this.openai.chat.completions.create({
-                model: "gpt-3.5-turbo",
+                // model: "gpt-3.5-turbo",
+                model: "gpt-5",
                 messages: messagesToSend,
-                max_tokens: 300,
-                temperature: 0.7
+                max_completion_tokens: 1000,
+                reasoning_effort: "minimal",
+                verbosity: "low"
             });
 
+            console.log('🔍 Full completion object:', JSON.stringify(completion, null, 2));
+            console.log('🔍 Choices array:', completion.choices);
+            console.log('🔍 First choice:', completion.choices[0]);
+            console.log('🔍 Message object:', completion.choices[0]?.message);
+            
             const response = completion.choices[0].message.content;
             console.log('✅ OpenAI Response:', response);
             console.log('=== END CHAT DEBUG ===\n');

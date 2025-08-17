@@ -410,10 +410,21 @@ function addChatMessage(message, sender = 'ai') {
     const avatar = sender === 'ai' ? '🤖' : '👤';
     const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
     
+    // Configure marked for security
+    marked.setOptions({
+        breaks: true,
+        gfm: true,
+        sanitize: false,
+        smartypants: true
+    });
+    
+    // Parse markdown and sanitize
+    const parsedMessage = marked.parse(message);
+    
     messageDiv.innerHTML = `
         <div class="message-avatar">${avatar}</div>
         <div class="message-content">
-            <p>${message}</p>
+            <div class="markdown-content">${parsedMessage}</div>
             <div class="message-time">${timestamp}</div>
         </div>
     `;
