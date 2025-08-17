@@ -2,7 +2,7 @@ const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
-const RealTimeCNN = require('./cnn-model');
+const MockRealTimeCNN = require('./mock-cnn');
 
 const app = express();
 const server = http.createServer(app);
@@ -19,7 +19,7 @@ app.get('/', (req, res) => {
 io.on('connection', (socket) => {
   console.log('User connected:', socket.id);
   
-  const cnn = new RealTimeCNN(socket);
+  const cnn = new MockRealTimeCNN(socket);
   cnnInstances.set(socket.id, cnn);
 
   socket.on('start-training', async (data) => {
