@@ -502,6 +502,10 @@ function setupSocketListeners() {
     
     socket.on('filter-activation', (data) => {
         animateFilterActivation(data);
+        // If we have feature map data, update the convolution visualization
+        if (data.featureMap && data.featureMap.length > 0) {
+            updateConvolutionFeatureMap(data);
+        }
     });
     
     socket.on('layer-processing-complete', (data) => {
@@ -754,15 +758,259 @@ function renderActivationVisualization(layerIndex, activationData) {
     const container = document.getElementById(`activation-${layerIndex}`);
     if (!container) return;
     
+    const layer = networkLayers[layerIndex];
+    if (!layer) return;
+    
     container.innerHTML = '';
     
-    activationData.slice(0, 32).forEach(activation => {
+    // Create layer-specific visualizations
+    switch(layer.type) {
+        case 'input':
+            renderInputVisualization(container, activationData);
+            break;
+        case 'conv':
+            renderConvolutionVisualization(container, activationData);
+            break;
+        case 'pool':
+            renderPoolingVisualization(container, activationData);
+            break;
+        case 'dense':
+            renderDenseVisualization(container, activationData);
+            break;
+        case 'output':
+            renderOutputVisualization(container, activationData);
+            break;
+        default:
+            renderGenericVisualization(container, activationData);
+    }
+}
+
+function renderInputVisualization(container, activationData) {
+    container.className = 'activation-viz input-viz';
+    container.innerHTML = `
+        <div class="viz-header">
+            <span class="viz-icon">📷</span>
+            <span class="viz-title">Input Image Data</span>
+        </div>
+        <div class="input-grid"></div>
+        <div class="viz-description">Raw pixel values from your drawing</div>
+    `;
+    
+    const grid = container.querySelector('.input-grid');
+    const gridSize = Math.min(8, Math.ceil(Math.sqrt(activationData.length)));
+    
+    for (let i = 0; i < Math.min(activationData.length, gridSize * gridSize); i++) {
+        const cell = document.createElement('div');
+        cell.className = 'input-cell';
+        const intensity = activationData[i];
+        cell.style.backgroundColor = `rgba(0, 0, 0, ${intensity})`;
+        cell.title = `Pixel intensity: ${(intensity * 100).toFixed(1)}%`;
+        grid.appendChild(cell);
+    }
+    
+    grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
+}
+
+function renderConvolutionVisualization(container, activationData) {
+    container.className = 'activation-viz conv-viz';
+    container.innerHTML = `
+        <div class="viz-header">
+            <span class="viz-icon">🔍</span>
+            <span class="viz-title">Feature Detection</span>
+        </div>
+        <div class="filter-maps"></div>
+        <div class="viz-description">Filters detecting edges, shapes, and patterns</div>
+    `;
+    
+    const mapsContainer = container.querySelector('.filter-maps');
+    const numMaps = Math.min(6, Math.ceil(activationData.length / 8));
+    
+    for (let mapIndex = 0; mapIndex < numMaps; mapIndex++) {
+        const mapDiv = document.createElement('div');
+        mapDiv.className = 'feature-map';
+        
+        const mapHeader = document.createElement('div');
+        mapHeader.className = 'map-header';
+        mapHeader.innerHTML = `Filter ${mapIndex + 1}`;
+        mapDiv.appendChild(mapHeader);
+        
+        const mapGrid = document.createElement('div');
+        mapGrid.className = 'feature-map-grid';
+        
+        const startIdx = mapIndex * 8;
+        const endIdx = Math.min(startIdx + 8, activationData.length);
+        
+        for (let i = startIdx; i < endIdx; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'feature-cell';
+            const activation = activationData[i];
+            
+            // Use different colors for different activation levels
+            if (activation > 0.7) {
+                cell.style.backgroundColor = `rgba(255, 69, 0, ${activation})`; // Strong activation: red-orange
+            } else if (activation > 0.4) {
+                cell.style.backgroundColor = `rgba(255, 165, 0, ${activation})`; // Medium activation: orange
+            } else {
+                cell.style.backgroundColor = `rgba(76, 175, 80, ${activation})`; // Low activation: green
+            }
+            
+            cell.title = `Activation: ${(activation * 100).toFixed(1)}%`;
+            mapGrid.appendChild(cell);
+        }
+        
+        mapGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+        mapDiv.appendChild(mapGrid);
+        mapsContainer.appendChild(mapDiv);
+    }
+}
+
+function renderPoolingVisualization(container, activationData) {
+    container.className = 'activation-viz pool-viz';
+    container.innerHTML = `
+        <div class="viz-header">
+            <span class="viz-icon">📏</span>
+            <span class="viz-title">Downsampling</span>
+        </div>
+        <div class="pooling-demo">
+            <div class="pooling-before">
+                <div class="pool-label">Before (larger)</div>
+                <div class="pool-grid before-grid"></div>
+            </div>
+            <div class="pooling-arrow">→</div>
+            <div class="pooling-after">
+                <div class="pool-label">After (smaller)</div>
+                <div class="pool-grid after-grid"></div>
+            </div>
+        </div>
+        <div class="viz-description">Reducing size while keeping important features</div>
+    `;
+    
+    const beforeGrid = container.querySelector('.before-grid');
+    const afterGrid = container.querySelector('.after-grid');
+    
+    // Create "before" grid (4x4)
+    for (let i = 0; i < 16; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'pool-cell before-cell';
+        const activation = Math.random() * 0.5 + 0.2; // Random values for demo
+        cell.style.backgroundColor = `rgba(76, 175, 80, ${activation})`;
+        beforeGrid.appendChild(cell);
+    }
+    beforeGrid.style.gridTemplateColumns = 'repeat(4, 1fr)';
+    
+    // Create "after" grid (2x2) using actual activation data
+    for (let i = 0; i < Math.min(4, activationData.length); i++) {
+        const cell = document.createElement('div');
+        cell.className = 'pool-cell after-cell';
+        const activation = activationData[i];
+        cell.style.backgroundColor = `rgba(255, 152, 0, ${activation})`;
+        cell.title = `Max pooled value: ${(activation * 100).toFixed(1)}%`;
+        afterGrid.appendChild(cell);
+    }
+    afterGrid.style.gridTemplateColumns = 'repeat(2, 1fr)';
+}
+
+function renderDenseVisualization(container, activationData) {
+    container.className = 'activation-viz dense-viz';
+    container.innerHTML = `
+        <div class="viz-header">
+            <span class="viz-icon">🧠</span>
+            <span class="viz-title">Neural Connections</span>
+        </div>
+        <div class="neurons-container"></div>
+        <div class="viz-description">Neurons making decisions based on all previous features</div>
+    `;
+    
+    const neuronsContainer = container.querySelector('.neurons-container');
+    const numNeurons = Math.min(16, activationData.length);
+    
+    for (let i = 0; i < numNeurons; i++) {
+        const neuron = document.createElement('div');
+        neuron.className = 'neuron';
+        
+        const activation = activationData[i];
+        const isActive = activation > 0.5;
+        
+        neuron.style.backgroundColor = isActive ? 
+            `rgba(76, 175, 80, ${activation})` : 
+            `rgba(158, 158, 158, ${activation * 0.5 + 0.2})`;
+        
+        neuron.innerHTML = `
+            <div class="neuron-activation">${(activation * 100).toFixed(0)}%</div>
+        `;
+        
+        neuron.title = `Neuron ${i + 1}: ${(activation * 100).toFixed(1)}% active`;
+        
+        // Add pulsing animation for highly active neurons
+        if (activation > 0.8) {
+            neuron.classList.add('highly-active');
+        }
+        
+        neuronsContainer.appendChild(neuron);
+    }
+}
+
+function renderOutputVisualization(container, activationData) {
+    container.className = 'activation-viz output-viz';
+    container.innerHTML = `
+        <div class="viz-header">
+            <span class="viz-icon">🎯</span>
+            <span class="viz-title">Final Predictions</span>
+        </div>
+        <div class="prediction-bars"></div>
+        <div class="viz-description">Probability for each digit (0-9)</div>
+    `;
+    
+    const barsContainer = container.querySelector('.prediction-bars');
+    const digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+    
+    for (let i = 0; i < Math.min(10, activationData.length); i++) {
+        const barContainer = document.createElement('div');
+        barContainer.className = 'mini-prediction-bar';
+        
+        const label = document.createElement('div');
+        label.className = 'mini-prediction-label';
+        label.textContent = digits[i];
+        
+        const bar = document.createElement('div');
+        bar.className = 'mini-prediction-fill';
+        const activation = activationData[i];
+        bar.style.width = `${activation * 100}%`;
+        bar.style.backgroundColor = activation > 0.5 ? '#4CAF50' : '#e0e0e0';
+        
+        const value = document.createElement('div');
+        value.className = 'mini-prediction-value';
+        value.textContent = `${(activation * 100).toFixed(0)}%`;
+        
+        barContainer.appendChild(label);
+        barContainer.appendChild(bar);
+        barContainer.appendChild(value);
+        barsContainer.appendChild(barContainer);
+    }
+}
+
+function renderGenericVisualization(container, activationData) {
+    container.className = 'activation-viz generic-viz';
+    container.innerHTML = `
+        <div class="viz-header">
+            <span class="viz-icon">⚡</span>
+            <span class="viz-title">Layer Activations</span>
+        </div>
+        <div class="generic-grid"></div>
+    `;
+    
+    const grid = container.querySelector('.generic-grid');
+    const gridSize = Math.min(8, Math.ceil(Math.sqrt(activationData.length)));
+    
+    activationData.slice(0, gridSize * gridSize).forEach(activation => {
         const cell = document.createElement('div');
         cell.className = 'activation-cell';
-        const intensity = Math.min(255, Math.max(0, activation * 255));
         cell.style.backgroundColor = `rgba(76, 175, 80, ${activation})`;
-        container.appendChild(cell);
+        cell.title = `Activation: ${(activation * 100).toFixed(1)}%`;
+        grid.appendChild(cell);
     });
+    
+    grid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
 }
 
 function animateFilterActivation(data) {
@@ -775,6 +1023,55 @@ function animateFilterActivation(data) {
             layerCard.classList.remove('processing-animation');
         }, 500);
     }
+}
+
+function updateConvolutionFeatureMap(data) {
+    const activationContainer = document.getElementById(`activation-${data.layerIndex}`);
+    if (!activationContainer || !activationContainer.classList.contains('conv-viz')) return;
+    
+    const filterMaps = activationContainer.querySelector('.filter-maps');
+    if (!filterMaps) return;
+    
+    // Find or create the feature map for this filter
+    let featureMapDiv = filterMaps.children[data.filterIndex];
+    if (!featureMapDiv) return;
+    
+    const featureMapGrid = featureMapDiv.querySelector('.feature-map-grid');
+    if (!featureMapGrid) return;
+    
+    // Update the feature map grid with the new data
+    featureMapGrid.innerHTML = '';
+    
+    // Flatten the 2D feature map for display
+    const flattenedMap = data.featureMap.flat();
+    const displaySize = Math.min(16, flattenedMap.length);
+    const gridSize = Math.ceil(Math.sqrt(displaySize));
+    
+    for (let i = 0; i < displaySize; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'feature-cell';
+        const activation = flattenedMap[i];
+        
+        // Use different colors for different activation levels
+        if (activation > 0.7) {
+            cell.style.backgroundColor = `rgba(255, 69, 0, ${activation})`;
+        } else if (activation > 0.4) {
+            cell.style.backgroundColor = `rgba(255, 165, 0, ${activation})`;
+        } else {
+            cell.style.backgroundColor = `rgba(76, 175, 80, ${activation})`;
+        }
+        
+        cell.title = `Activation: ${(activation * 100).toFixed(1)}%`;
+        
+        // Add a subtle pulse animation for high activations
+        if (activation > 0.8) {
+            cell.style.animation = 'featureMapPulse 0.5s ease-in-out';
+        }
+        
+        featureMapGrid.appendChild(cell);
+    }
+    
+    featureMapGrid.style.gridTemplateColumns = `repeat(${gridSize}, 1fr)`;
 }
 
 function completeLayerProcessing(data) {

@@ -314,16 +314,269 @@ header p {
 }
 
 .activation-viz {
+    margin-top: 15px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 12px;
+    background: #fafafa;
+}
+
+.viz-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.viz-icon {
+    font-size: 1.2em;
+}
+
+.viz-title {
+    font-size: 0.9em;
+}
+
+.viz-description {
+    margin-top: 8px;
+    font-size: 0.8em;
+    color: #666;
+    font-style: italic;
+    text-align: center;
+}
+
+/* Input Visualization */
+.input-viz .input-grid {
     display: grid;
-    grid-template-columns: repeat(8, 1fr);
+    gap: 1px;
+    margin: 8px 0;
+    max-width: 120px;
+    margin: 8px auto;
+}
+
+.input-cell {
+    aspect-ratio: 1;
+    border: 1px solid #ddd;
+    border-radius: 1px;
+    transition: all 0.3s ease;
+}
+
+.input-cell:hover {
+    transform: scale(1.1);
+    z-index: 1;
+}
+
+/* Convolution Visualization */
+.conv-viz .filter-maps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+}
+
+.feature-map {
+    text-align: center;
+}
+
+.map-header {
+    font-size: 0.75em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #555;
+}
+
+.feature-map-grid {
+    display: grid;
+    gap: 1px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.feature-cell {
+    aspect-ratio: 1;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.feature-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    z-index: 1;
+}
+
+/* Pooling Visualization */
+.pool-viz .pooling-demo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: center;
+    margin: 10px 0;
+}
+
+.pooling-before, .pooling-after {
+    text-align: center;
+}
+
+.pool-label {
+    font-size: 0.75em;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #555;
+}
+
+.pool-grid {
+    display: grid;
+    gap: 1px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.pool-cell {
+    aspect-ratio: 1;
+    transition: all 0.3s ease;
+}
+
+.before-cell {
+    width: 12px;
+    height: 12px;
+}
+
+.after-cell {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ff9800;
+}
+
+.pooling-arrow {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #ff9800;
+}
+
+/* Dense Visualization */
+.dense-viz .neurons-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.neuron {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    font-weight: bold;
+    color: white;
+    text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid #ddd;
+}
+
+.neuron:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.6);
+}
+
+.neuron.highly-active {
+    animation: neuronPulse 1s infinite;
+    box-shadow: 0 0 15px rgba(76, 175, 80, 0.8);
+}
+
+.neuron-activation {
+    font-size: 0.8em;
+}
+
+/* Output Visualization */
+.output-viz .prediction-bars {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+    margin: 10px 0;
+}
+
+.mini-prediction-bar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.7em;
+}
+
+.mini-prediction-label {
+    width: 16px;
+    height: 16px;
+    background: #4a5568;
+    color: white;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 0.8em;
+}
+
+.mini-prediction-fill {
+    height: 12px;
+    border-radius: 6px;
+    min-width: 20px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    padding-right: 4px;
+    font-size: 0.7em;
+    color: #333;
+    font-weight: bold;
+}
+
+.mini-prediction-value {
+    font-size: 0.7em;
+    font-weight: bold;
+    color: #666;
+    min-width: 28px;
+}
+
+/* Generic Visualization */
+.generic-viz .generic-grid {
+    display: grid;
     gap: 2px;
-    margin-top: 10px;
+    margin: 8px 0;
+    max-width: 120px;
+    margin: 8px auto;
 }
 
 .activation-cell {
     aspect-ratio: 1;
     border-radius: 2px;
     transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.activation-cell:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 5px rgba(0,0,0,0.3);
+}
+
+/* Animations */
+@keyframes neuronPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes featureMapPulse {
+    0%, 100% { 
+        transform: scale(1);
+        box-shadow: 0 0 5px rgba(255, 69, 0, 0.5);
+    }
+    50% { 
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(255, 69, 0, 0.8);
+    }
 }
 
 /* Training Section */
