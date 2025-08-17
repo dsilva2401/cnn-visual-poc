@@ -5,11 +5,147 @@ let isDrawing = false;
 let currentLayerIndex = -1;
 let networkLayers = [];
 
+// Info content for all UI elements
+const infoContent = {
+    'clear-canvas': {
+        title: 'Clear Canvas',
+        content: `
+            <h4>What it does:</h4>
+            <p>Clears the drawing canvas so you can start fresh with a new digit.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> An eraser that wipes your whiteboard clean so you can draw something new.
+            </div>
+        `
+    },
+    'process-image': {
+        title: 'Process Through CNN',
+        content: `
+            <h4>What it does:</h4>
+            <p>Sends your drawing through the Convolutional Neural Network to see how it recognizes the digit you drew.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> Feeding your drawing into a smart machine that examines it layer by layer, like a detective looking for clues to identify what number you wrote.
+            </div>
+            
+            <div class="example">
+                <strong>What you'll see:</strong> The network will process your image step-by-step, showing how each layer transforms and analyzes your drawing until it makes a final prediction.
+            </div>
+        `
+    },
+    'upload-image': {
+        title: 'Upload Image',
+        content: `
+            <h4>What it does:</h4>
+            <p>Lets you upload an image file from your computer instead of drawing on the canvas.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> Bringing a photo to show the AI, instead of drawing something yourself. The AI will still analyze it the same way.
+            </div>
+            
+            <div class="example">
+                <strong>Best images:</strong> Clear, simple images with digits (0-9) work best. The AI was trained to recognize handwritten numbers.
+            </div>
+        `
+    },
+    'epochs': {
+        title: 'Epochs - Training Rounds',
+        content: `
+            <h4>What it does:</h4>
+            <p>An epoch is one complete pass through all the training data. More epochs = more learning time.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> Reading a textbook multiple times. The first time you might understand 30%, the second time 60%, and so on. Each complete read-through is like one epoch.
+            </div>
+            
+            <div class="example">
+                <strong>In practice:</strong> 
+                <br>• 1 epoch = quick learning, might not be enough
+                <br>• 5 epochs = good balance of learning and time
+                <br>• 20 epochs = very thorough learning, but takes longer
+            </div>
+        `
+    },
+    'learning-rate': {
+        title: 'Learning Rate - How Fast to Learn',
+        content: `
+            <h4>What it does:</h4>
+            <p>Controls how big steps the AI takes when learning from mistakes. Higher = faster learning, but might overshoot the best answer.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> Learning to ride a bike. A high learning rate is like making big adjustments to your balance - you might learn faster but risk overcorrecting and falling. A low learning rate is like making tiny adjustments - safer but slower to learn.
+            </div>
+            
+            <div class="example">
+                <strong>Common values:</strong>
+                <br>• 0.1 = Very fast learning (might be unstable)
+                <br>• 0.001 = Steady, reliable learning (recommended)
+                <br>• 0.0001 = Very slow but safe learning
+            </div>
+        `
+    },
+    'start-training': {
+        title: 'Start Training',
+        content: `
+            <h4>What it does:</h4>
+            <p>Begins teaching the neural network to recognize digits by showing it many examples and correcting its mistakes.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> Teaching a child to recognize letters by showing them flashcards over and over, correcting them when they're wrong, until they get really good at it.
+            </div>
+            
+            <div class="example">
+                <strong>What you'll see:</strong> 
+                <br>• Loss going down (fewer mistakes)
+                <br>• Accuracy going up (more correct guesses)
+                <br>• Real-time updates as the AI learns
+            </div>
+        `
+    },
+    'loss': {
+        title: 'Loss - How Wrong the AI Is',
+        content: `
+            <h4>What it measures:</h4>
+            <p>Loss measures how far off the AI's guesses are from the correct answers. Lower loss = better performance.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> A golf score - lower is better! If you're aiming for the hole and miss by 10 feet, that's a high "loss". If you miss by 1 inch, that's a very low "loss".
+            </div>
+            
+            <div class="example">
+                <strong>Typical values:</strong>
+                <br>• 2.3 = Random guessing (very bad)
+                <br>• 0.5 = Getting better
+                <br>• 0.05 = Very good performance
+            </div>
+        `
+    },
+    'accuracy': {
+        title: 'Accuracy - How Often the AI is Right',
+        content: `
+            <h4>What it measures:</h4>
+            <p>Accuracy shows the percentage of correct predictions. Higher accuracy = better performance.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> A test score in school. If you get 9 out of 10 questions right, your accuracy is 90%. If you get 5 out of 10 right, your accuracy is 50%.
+            </div>
+            
+            <div class="example">
+                <strong>Typical values:</strong>
+                <br>• 10% = Random guessing (terrible)
+                <br>• 50% = Getting somewhere
+                <br>• 95% = Excellent performance
+            </div>
+        `
+    }
+};
+
 document.addEventListener('DOMContentLoaded', function() {
     initializeCanvas();
     initializeNetworkVisualization();
     setupEventListeners();
     setupSocketListeners();
+    setupInfoModal();
 });
 
 function initializeCanvas() {
@@ -87,9 +223,72 @@ function setupEventListeners() {
     document.getElementById('imageUpload').addEventListener('change', handleImageUpload);
 }
 
+function setupInfoModal() {
+    // Setup info button click handlers
+    document.querySelectorAll('.info-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const infoKey = button.getAttribute('data-info');
+            showInfoModal(infoKey);
+        });
+    });
+    
+    // Setup modal close handlers
+    document.getElementById('closeInfoModal').addEventListener('click', hideInfoModal);
+    document.getElementById('infoModal').addEventListener('click', (e) => {
+        if (e.target.id === 'infoModal') {
+            hideInfoModal();
+        }
+    });
+    
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            hideInfoModal();
+        }
+    });
+}
+
+function showInfoModal(infoKey) {
+    const modal = document.getElementById('infoModal');
+    const title = document.getElementById('infoModalTitle');
+    const body = document.getElementById('infoModalBody');
+    
+    const info = infoContent[infoKey];
+    if (info) {
+        title.textContent = info.title;
+        body.innerHTML = info.content;
+        modal.classList.add('show');
+    }
+}
+
+function hideInfoModal() {
+    document.getElementById('infoModal').classList.remove('show');
+}
+
+function updateLiveExplanation(text, type = 'info') {
+    const explanationContent = document.querySelector('.explanation-content');
+    let icon = '🤖';
+    
+    switch(type) {
+        case 'training': icon = '🎯'; break;
+        case 'processing': icon = '⚡'; break;
+        case 'success': icon = '✅'; break;
+        case 'thinking': icon = '🧠'; break;
+        default: icon = '🤖';
+    }
+    
+    explanationContent.innerHTML = `
+        <div class="step-indicator">${icon} Live Status</div>
+        <p>${text}</p>
+    `;
+}
+
 function setupSocketListeners() {
     socket.on('processing-start', (data) => {
         updateProcessingStatus('Processing started...', 0);
+        updateLiveExplanation('🔍 Starting to analyze your drawing! The CNN will examine it layer by layer to figure out what digit you drew.', 'processing');
         resetNetworkVisualization();
     });
     
@@ -97,6 +296,26 @@ function setupSocketListeners() {
         updateProcessingStatus(`Processing ${data.layer.name}...`, data.progress);
         highlightLayer(data.layerIndex);
         createLayerDetailCard(data.layer, data.layerIndex);
+        
+        // Live explanations for each layer type
+        let explanation = '';
+        switch(data.layer.type) {
+            case 'convolution':
+                explanation = `🔍 <strong>Convolution layer</strong> is scanning your image with ${data.layer.filters || 32} different filters, looking for patterns like edges, curves, and shapes. Think of it like having multiple magnifying glasses, each looking for different features.`;
+                break;
+            case 'maxpooling':
+                explanation = `📏 <strong>Pooling layer</strong> is shrinking the image while keeping the important information. It's like taking a high-resolution photo and making a smaller version that still shows all the key details.`;
+                break;
+            case 'flatten':
+                explanation = `📋 <strong>Flatten layer</strong> is converting the 2D image data into a long list of numbers, preparing it for the final decision-making layers. Like unrolling a carpet to see all the pattern details in a line.`;
+                break;
+            case 'dense':
+                explanation = `🧠 <strong>Dense layer</strong> is making connections between all the features found earlier. These neurons are like a committee discussing what digit this might be based on all the patterns they've seen.`;
+                break;
+            default:
+                explanation = `⚡ Processing through <strong>${data.layer.name}</strong> layer...`;
+        }
+        updateLiveExplanation(explanation, 'processing');
     });
     
     socket.on('filter-activation', (data) => {
@@ -112,15 +331,29 @@ function setupSocketListeners() {
         updateProcessingStatus('Processing complete!', 100);
         displayPredictions(data.predictions);
         resetNetworkVisualization();
+        
+        const predictedDigit = data.predictedClass;
+        const confidence = (data.confidence * 100).toFixed(1);
+        updateLiveExplanation(`🎉 <strong>Analysis complete!</strong> The CNN thinks your drawing is the digit <strong>${predictedDigit}</strong> with ${confidence}% confidence. Look at the prediction bars below to see how confident it is about each possible digit.`, 'success');
+    });
+    
+    socket.on('training-epoch-start', (data) => {
+        updateLiveExplanation(`📚 <strong>Training Epoch ${data.epoch}/${data.total}</strong> - The AI is about to see a bunch of example images and learn from its mistakes. Think of this like studying flashcards!`, 'training');
     });
     
     socket.on('training-step', (data) => {
         updateTrainingMetrics(data.loss, data.accuracy);
+        updateLiveExplanation(`🎯 <strong>Learning in progress...</strong> Epoch ${data.epoch}, Batch ${data.batch}. Loss: ${data.loss} (lower is better), Accuracy: ${data.accuracy} (higher is better). The AI is getting smarter with each example!`, 'training');
+    });
+    
+    socket.on('training-epoch-complete', (data) => {
+        updateLiveExplanation(`✅ <strong>Epoch ${data.epoch} completed!</strong> The AI has seen all the training examples once. Average loss: ${data.avgLoss}, Average accuracy: ${data.avgAccuracy}. Ready for the next round of learning!`, 'training');
     });
     
     socket.on('training-complete', (data) => {
         updateProcessingStatus(data.message, 100);
         showSuccessMessage('Training completed successfully!');
+        updateLiveExplanation(`🏆 <strong>Training finished!</strong> The AI has learned to recognize digits! Final performance: Loss ${data.finalLoss}, Accuracy ${data.finalAccuracy}. Now try drawing a digit to test what it learned!`, 'success');
     });
 }
 
@@ -173,11 +406,14 @@ function clearCanvas() {
     document.getElementById('predictions').innerHTML = '';
     document.getElementById('layerDetails').innerHTML = '';
     resetNetworkVisualization();
+    updateLiveExplanation('🧹 Canvas cleared! Draw a digit (0-9) and then click "Process Through CNN" to see how the AI recognizes it.', 'info');
 }
 
 function processImage() {
     const imageData = canvas.toDataURL();
     socket.emit('process-image', imageData);
+    
+    updateLiveExplanation('🚀 <strong>Starting CNN analysis!</strong> Your drawing is being sent through the neural network. Watch as each layer processes and transforms your image to recognize what digit you drew.', 'thinking');
     
     const btn = document.getElementById('processImage');
     btn.disabled = true;
@@ -192,6 +428,8 @@ function processImage() {
 function startTraining() {
     const epochs = document.getElementById('epochs').value;
     const learningRate = document.getElementById('learningRate').value;
+    
+    updateLiveExplanation(`🎓 <strong>Starting AI training!</strong> The neural network will study ${epochs} rounds of example images, learning to recognize digits. Learning rate: ${learningRate} (how big steps it takes when learning). This is like teaching a student with flashcards!`, 'training');
     
     socket.emit('start-training', {
         epochs: parseInt(epochs),
@@ -211,6 +449,8 @@ function startTraining() {
 function handleImageUpload(e) {
     const file = e.target.files[0];
     if (file) {
+        updateLiveExplanation('📁 <strong>Image uploaded!</strong> Your image has been loaded onto the canvas. Now click "Process Through CNN" to see how the AI analyzes it. For best results, use clear images of single digits (0-9).', 'info');
+        
         const reader = new FileReader();
         reader.onload = function(event) {
             const img = new Image();

@@ -37,7 +37,7 @@ header p {
 .main-content {
     display: grid;
     grid-template-columns: 1fr 2fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
     gap: 20px;
 }
 
@@ -58,9 +58,45 @@ header p {
     padding-bottom: 10px;
 }
 
+/* Explanation Section */
+.explanation-section {
+    grid-column: 1 / 3;
+    grid-row: 1;
+}
+
+.live-explanation {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    border-radius: 10px;
+    padding: 20px;
+    color: white;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+}
+
+.explanation-content {
+    width: 100%;
+}
+
+.explanation-content p {
+    font-size: 1.1em;
+    line-height: 1.6;
+    margin: 0;
+}
+
+.explanation-content .step-indicator {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 5px 15px;
+    display: inline-block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    font-size: 0.9em;
+}
+
 /* Input Section */
 .input-section {
-    grid-row: 1 / 3;
+    grid-row: 2 / 4;
 }
 
 #drawingCanvas {
@@ -108,10 +144,48 @@ header p {
     background: #da190b;
 }
 
+/* Info Buttons */
+.info-btn {
+    background: #3498db;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 5px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.info-btn:hover {
+    background: #2980b9;
+    transform: scale(1.1);
+}
+
+.file-upload-label {
+    background: #95a5a6;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+.file-upload-label:hover {
+    background: #7f8c8d;
+}
+
 /* Network Visualization */
 .network-section {
     grid-column: 2;
-    grid-row: 1;
+    grid-row: 2;
 }
 
 .network-viz {
@@ -192,7 +266,7 @@ header p {
 /* Processing Section */
 .processing-section {
     grid-column: 2;
-    grid-row: 2;
+    grid-row: 3;
 }
 
 .processing-status {
@@ -255,7 +329,7 @@ header p {
 /* Training Section */
 .training-section {
     grid-column: 1;
-    grid-row: 3;
+    grid-row: 4;
 }
 
 .training-controls {
@@ -329,7 +403,7 @@ header p {
 /* Results Section */
 .results-section {
     grid-column: 2;
-    grid-row: 3;
+    grid-row: 4;
 }
 
 .predictions {
@@ -427,6 +501,123 @@ header p {
     animation: processing 1.5s infinite;
 }
 
+/* Info Modal */
+.info-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+}
+
+.info-modal.show {
+    display: flex;
+}
+
+.info-modal-content {
+    background: white;
+    border-radius: 15px;
+    padding: 0;
+    max-width: 500px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease;
+}
+
+.info-modal-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px 15px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.info-modal-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s ease;
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.info-modal-body {
+    padding: 25px;
+    line-height: 1.6;
+}
+
+.info-modal-body h4 {
+    color: #2c3e50;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+}
+
+.info-modal-body p {
+    margin-bottom: 15px;
+    color: #555;
+}
+
+.info-modal-body .analogy {
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.info-modal-body .analogy strong {
+    color: #2980b9;
+}
+
+.info-modal-body .example {
+    background: #e8f5e8;
+    border-left: 4px solid #27ae60;
+    padding: 15px;
+    margin: 15px 0;
+    border-radius: 0 8px 8px 0;
+}
+
+.info-modal-body .example strong {
+    color: #229954;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
     .main-content {
@@ -434,7 +625,13 @@ header p {
         grid-template-rows: auto;
     }
     
-    .input-section {
+    .explanation-section,
+    .input-section,
+    .network-section,
+    .processing-section,
+    .training-section,
+    .results-section {
+        grid-column: 1;
         grid-row: auto;
     }
     
@@ -460,5 +657,10 @@ header p {
     
     .layer-node {
         margin: 10px 0;
+    }
+    
+    .info-modal-content {
+        width: 95%;
+        margin: 10px;
     }
 }
