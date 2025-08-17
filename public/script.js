@@ -5,6 +5,30 @@ let isDrawing = false;
 let currentLayerIndex = -1;
 let networkLayers = [];
 
+// Global context state for AI assistant
+let appContext = {
+    hasDrawing: false,
+    lastPrediction: null,
+    currentTraining: {
+        isTraining: false,
+        epochs: 5,
+        learningRate: 0.001,
+        currentEpoch: 0,
+        currentBatch: 0,
+        lastLoss: null,
+        lastAccuracy: null
+    },
+    lastProcessing: {
+        isProcessing: false,
+        currentLayer: null,
+        layerIndex: -1,
+        activations: {}
+    },
+    openInfoModals: [],
+    userInteractions: [],
+    chatHistory: []
+};
+
 // Info content for all UI elements
 const infoContent = {
     'clear-canvas': {
@@ -137,6 +161,32 @@ const infoContent = {
                 <br>• 95% = Excellent performance
             </div>
         `
+    },
+    'chat-assistant': {
+        title: 'AI Chat Assistant',
+        content: `
+            <h4>What it does:</h4>
+            <p>Your smart assistant that can see everything happening with the CNN in real-time and answer your questions using advanced AI.</p>
+            
+            <div class="analogy">
+                <strong>Think of it like:</strong> Having a knowledgeable tutor sitting next to you who can see your screen and explain anything you're curious about.
+            </div>
+            
+            <div class="example">
+                <strong>What it knows:</strong>
+                <br>• Your current drawings and predictions
+                <br>• Training progress and metrics
+                <br>• Layer activations and processing
+                <br>• All parameter settings
+                <br>• Which info modals you've opened
+                
+                <br><br><strong>Try asking:</strong>
+                <br>• "Why did it predict 8 instead of 3?"
+                <br>• "What's happening in the conv layers?"
+                <br>• "Should I increase the learning rate?"
+                <br>• "Explain this layer's activation pattern"
+            </div>
+        `
     }
 };
 
@@ -221,6 +271,14 @@ function setupEventListeners() {
     document.getElementById('processImage').addEventListener('click', processImage);
     document.getElementById('startTraining').addEventListener('click', startTraining);
     document.getElementById('imageUpload').addEventListener('change', handleImageUpload);
+    
+    // Chat functionality
+    document.getElementById('sendChatMessage').addEventListener('click', sendChatMessage);
+    document.getElementById('chatInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendChatMessage();
+        }
+    });
 }
 
 function setupInfoModal() {
@@ -260,6 +318,10 @@ function showInfoModal(infoKey) {
         title.textContent = info.title;
         body.innerHTML = info.content;
         modal.classList.add('show');
+        
+        // Track for context
+        trackUserInteraction('info_modal_opened', { infoKey, title: info.title });
+        appContext.openInfoModals.push(infoKey);
     }
 }
 
@@ -285,11 +347,104 @@ function updateLiveExplanation(text, type = 'info') {
     `;
 }
 
+// Context tracking functions
+function trackUserInteraction(action, data = {}) {
+    const interaction = {
+        timestamp: Date.now(),
+        action: action,
+        data: data
+    };
+    appContext.userInteractions.push(interaction);
+    
+    // Keep only last 50 interactions to prevent memory bloat
+    if (appContext.userInteractions.length > 50) {
+        appContext.userInteractions.shift();
+    }
+}
+
+// Chat functionality
+function sendChatMessage() {
+    const chatInput = document.getElementById('chatInput');
+    const message = chatInput.value.trim();
+    
+    if (!message) return;
+    
+    // Add user message to chat
+    addChatMessage(message, 'user');
+    chatInput.value = '';
+    
+    // Update chat status
+    updateChatStatus('AI is thinking...', 'thinking');
+    
+    // Track interaction
+    trackUserInteraction('chat_message_sent', { message });
+    
+    // Send to backend with full context
+    socket.emit('chat-message', {
+        message: message,
+        context: getCurrentContext()
+    });
+}
+
+function addChatMessage(message, sender = 'ai') {
+    const chatMessages = document.getElementById('chatMessages');
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `chat-message ${sender}-message`;
+    
+    const avatar = sender === 'ai' ? '🤖' : '👤';
+    const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    
+    messageDiv.innerHTML = `
+        <div class="message-avatar">${avatar}</div>
+        <div class="message-content">
+            <p>${message}</p>
+            <div class="message-time">${timestamp}</div>
+        </div>
+    `;
+    
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    
+    // Track in context
+    appContext.chatHistory.push({ sender, message, timestamp: Date.now() });
+}
+
+function updateChatStatus(text, type = 'ready') {
+    const chatStatus = document.getElementById('chatStatus');
+    let icon = '💬';
+    
+    switch(type) {
+        case 'thinking': icon = '🤔'; break;
+        case 'error': icon = '❌'; break;
+        case 'ready': icon = '✅'; break;
+    }
+    
+    chatStatus.innerHTML = `${icon} ${text}`;
+}
+
+function getCurrentContext() {
+    // Update current parameter values
+    appContext.currentTraining.epochs = parseInt(document.getElementById('epochs').value);
+    appContext.currentTraining.learningRate = parseFloat(document.getElementById('learningRate').value);
+    
+    return {
+        appContext: appContext,
+        networkLayers: networkLayers,
+        currentLayerIndex: currentLayerIndex,
+        canvasHasDrawing: appContext.hasDrawing,
+        timestamp: Date.now()
+    };
+}
+
 function setupSocketListeners() {
     socket.on('processing-start', (data) => {
         updateProcessingStatus('Processing started...', 0);
         updateLiveExplanation('🔍 Starting to analyze your drawing! The CNN will examine it layer by layer to figure out what digit you drew.', 'processing');
         resetNetworkVisualization();
+        
+        // Update context
+        appContext.lastProcessing.isProcessing = true;
+        trackUserInteraction('processing_started');
     });
     
     socket.on('layer-processing-start', (data) => {
@@ -335,6 +490,15 @@ function setupSocketListeners() {
         const predictedDigit = data.predictedClass;
         const confidence = (data.confidence * 100).toFixed(1);
         updateLiveExplanation(`🎉 <strong>Analysis complete!</strong> The CNN thinks your drawing is the digit <strong>${predictedDigit}</strong> with ${confidence}% confidence. Look at the prediction bars below to see how confident it is about each possible digit.`, 'success');
+        
+        // Update context
+        appContext.lastProcessing.isProcessing = false;
+        appContext.lastPrediction = {
+            predictedClass: predictedDigit,
+            confidence: data.confidence,
+            predictions: data.predictions
+        };
+        trackUserInteraction('processing_completed', data);
     });
     
     socket.on('training-epoch-start', (data) => {
@@ -344,6 +508,12 @@ function setupSocketListeners() {
     socket.on('training-step', (data) => {
         updateTrainingMetrics(data.loss, data.accuracy);
         updateLiveExplanation(`🎯 <strong>Learning in progress...</strong> Epoch ${data.epoch}, Batch ${data.batch}. Loss: ${data.loss} (lower is better), Accuracy: ${data.accuracy} (higher is better). The AI is getting smarter with each example!`, 'training');
+        
+        // Update context
+        appContext.currentTraining.currentEpoch = data.epoch;
+        appContext.currentTraining.currentBatch = data.batch;
+        appContext.currentTraining.lastLoss = data.loss;
+        appContext.currentTraining.lastAccuracy = data.accuracy;
     });
     
     socket.on('training-epoch-complete', (data) => {
@@ -354,6 +524,21 @@ function setupSocketListeners() {
         updateProcessingStatus(data.message, 100);
         showSuccessMessage('Training completed successfully!');
         updateLiveExplanation(`🏆 <strong>Training finished!</strong> The AI has learned to recognize digits! Final performance: Loss ${data.finalLoss}, Accuracy ${data.finalAccuracy}. Now try drawing a digit to test what it learned!`, 'success');
+        
+        // Update context
+        appContext.currentTraining.isTraining = false;
+        trackUserInteraction('training_completed', data);
+    });
+    
+    // Chat response handler
+    socket.on('chat-response', (data) => {
+        if (data.error) {
+            addChatMessage('Sorry, I encountered an error processing your message. Please try again.', 'ai');
+            updateChatStatus('Error occurred', 'error');
+        } else {
+            addChatMessage(data.response, 'ai');
+            updateChatStatus('Ready to help!', 'ready');
+        }
     });
 }
 
@@ -373,6 +558,12 @@ function draw(e) {
     ctx.stroke();
     ctx.beginPath();
     ctx.moveTo(x, y);
+    
+    // Update context - user is drawing
+    if (!appContext.hasDrawing) {
+        appContext.hasDrawing = true;
+        trackUserInteraction('started_drawing');
+    }
 }
 
 function stopDrawing() {
@@ -407,6 +598,11 @@ function clearCanvas() {
     document.getElementById('layerDetails').innerHTML = '';
     resetNetworkVisualization();
     updateLiveExplanation('🧹 Canvas cleared! Draw a digit (0-9) and then click "Process Through CNN" to see how the AI recognizes it.', 'info');
+    
+    // Update context
+    appContext.hasDrawing = false;
+    appContext.lastPrediction = null;
+    trackUserInteraction('canvas_cleared');
 }
 
 function processImage() {
@@ -435,6 +631,12 @@ function startTraining() {
         epochs: parseInt(epochs),
         learningRate: parseFloat(learningRate)
     });
+    
+    // Update context
+    appContext.currentTraining.isTraining = true;
+    appContext.currentTraining.epochs = parseInt(epochs);
+    appContext.currentTraining.learningRate = parseFloat(learningRate);
+    trackUserInteraction('training_started', { epochs, learningRate });
     
     const btn = document.getElementById('startTraining');
     btn.disabled = true;

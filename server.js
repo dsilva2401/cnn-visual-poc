@@ -1,14 +1,18 @@
+require('dotenv').config();
+
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 const MockRealTimeCNN = require('./mock-cnn');
+const ChatService = require('./chat-service');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
 const cnnInstances = new Map();
+const chatService = new ChatService();
 
 app.use(express.static('public'));
 
@@ -50,6 +54,20 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Parameter update error:', error);
       socket.emit('parameter-update-error', { message: error.message });
+    }
+  });
+
+  socket.on('chat-message', async (data) => {
+    console.log('Chat message received:', data.message);
+    try {
+      const response = await chatService.getChatResponse(data.message, data.context);
+      socket.emit('chat-response', { response });
+    } catch (error) {
+      console.error('Chat service error:', error);
+      socket.emit('chat-response', { 
+        error: true, 
+        response: 'Sorry, I encountered an error processing your message. Please try again.' 
+      });
     }
   });
 

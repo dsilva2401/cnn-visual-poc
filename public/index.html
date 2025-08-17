@@ -115,6 +115,29 @@
                     <!-- Prediction bars will be generated here -->
                 </div>
             </div>
+
+            <!-- AI Chat Assistant -->
+            <div class="section chat-section">
+                <h2>💬 AI Assistant</h2>
+                <div class="chat-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="chat-message ai-message">
+                            <div class="message-avatar">🤖</div>
+                            <div class="message-content">
+                                <p>Hi! I'm your AI assistant. I can see everything happening with the CNN - your drawings, training progress, layer activations, and more. Ask me anything about how this neural network works!</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" placeholder="Ask me anything about the CNN..." maxlength="500">
+                        <button id="sendChatMessage">
+                            📤
+                            <button class="info-btn" data-info="chat-assistant">ℹ️</button>
+                        </button>
+                    </div>
+                    <div class="chat-status" id="chatStatus">Ready to help!</div>
+                </div>
+            </div>
         </div>
 
         <!-- Educational Tooltips -->
