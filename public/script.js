@@ -26,7 +26,8 @@ let appContext = {
     },
     openInfoModals: [],
     userInteractions: [],
-    chatHistory: []
+    chatHistory: [],
+    liveExplanationHistory: []
 };
 
 // Info content for all UI elements
@@ -345,6 +346,21 @@ function updateLiveExplanation(text, type = 'info') {
         <div class="step-indicator">${icon} Live Status</div>
         <p>${text}</p>
     `;
+    
+    // Track live explanation messages for AI context
+    const explanationEntry = {
+        timestamp: Date.now(),
+        type: type,
+        text: text,
+        icon: icon
+    };
+    
+    appContext.liveExplanationHistory.push(explanationEntry);
+    
+    // Keep only last 20 explanations to prevent memory bloat
+    if (appContext.liveExplanationHistory.length > 20) {
+        appContext.liveExplanationHistory.shift();
+    }
 }
 
 // Context tracking functions
